@@ -397,9 +397,18 @@ bool DeltaPerformer::OpenCurrentPartition() {
             << " operations to partition \"" << partition.partition_name()
             << "\"";
 
+  int mt_boot_type = utils::get_boot_type();
+
+  if (mt_boot_type == 1 && (partitions_[current_partition_].partition_name() == "preloader_ufs")) /* EMMC */
+      goto skip_discard;
+
+  if (mt_boot_type == 2 && (partitions_[current_partition_].partition_name() == "preloader_emmc")) /* UFS */
+      goto skip_discard;
+
   // Discard the end of the partition, but ignore failures.
   DiscardPartitionTail(target_fd_, install_part.target_size);
 
+skip_discard:
   return true;
 }
 
@@ -715,6 +724,31 @@ bool DeltaPerformer::Write(const void* bytes, size_t count, ErrorCode* error) {
         ScopedTerminatorExitUnblocker();  // Avoids a compiler unused var bug.
 
     base::TimeTicks op_start_time = base::TimeTicks::Now();
+
+    int mt_boot_type = utils::get_boot_type();
+    bool skip_one_pl = false;
+
+    if (mt_boot_type == 1) { /* EMMC */
+      if (partitions_[current_partition_].partition_name() == "preloader_ufs") {
+        LOG(INFO) << "Storage is EMMC. Skip update preloader_ufs ";
+        skip_one_pl = true;
+      }
+    }
+
+    if (mt_boot_type == 2) { /* UFS */
+      if (partitions_[current_partition_].partition_name() == "preloader_emmc") {
+        LOG(INFO) << "Storage is UFS. Skip update preloader_emmc ";
+        skip_one_pl = true;
+      }
+    }
+
+    if (skip_one_pl) {
+        DiscardBuffer(true, buffer_.size());
+        next_operation_num_++;
+        UpdateOverallProgress(false, "Completed ");
+        CheckpointUpdateProgress(false);
+        continue;
+    }
 
     bool op_result;
     switch (op.type()) {

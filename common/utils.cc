@@ -1022,6 +1022,31 @@ bool GetBootId(string* boot_id) {
   return true;
 }
 
+int get_boot_type(void) {
+    int fd;
+    size_t s;
+    char boot_type[4] = {'0'};
+
+    fd = open("/sys/class/BOOT/BOOT/boot/boot_type", O_RDONLY);
+    if (fd < 0) {
+        printf("fail to open: %s\n", "/sys/class/BOOT/BOOT/boot/boot_type");
+        return -1;
+    }
+
+    s = read(fd, boot_type, sizeof(boot_type) - 1);
+    close(fd);
+
+    if (s <= 0) {
+        printf("could not read boot type sys file\n");
+        return -1;
+    }
+
+    if (s >= 0 && s < sizeof(boot_type))
+        boot_type[s] = '\0';
+
+    return atoi(boot_type);
+}
+
 int VersionPrefix(const std::string& version) {
   if (version.empty()) {
     return 0;

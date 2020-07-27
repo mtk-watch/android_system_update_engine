@@ -237,8 +237,19 @@ void FilesystemVerifierAction::FinishPartitionHashing() {
   LOG(INFO) << "Hash of " << partition.name << ": "
             << Base64Encode(hasher_->raw_hash());
 
+  int mt_boot_type = utils::get_boot_type();
   switch (verifier_step_) {
     case VerifierStep::kVerifyTargetHash:
+      if (mt_boot_type == 1 && (partition.name == "preloader_ufs")) { /* EMMC */
+        LOG(INFO) << "Storage is EMMC Skip verify preloader_ufs";
+        partition_index_++;
+        break;
+      }
+      if (mt_boot_type == 2 && (partition.name == "preloader_emmc")) { /* UFS */
+        LOG(INFO) << "Storage is UFS Skip verify preloader_emmc";
+        partition_index_++;
+        break;
+      }
       if (partition.target_hash != hasher_->raw_hash()) {
         LOG(ERROR) << "New '" << partition.name
                    << "' partition verification failed.";

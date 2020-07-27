@@ -303,6 +303,7 @@ bool ReadExtents(const std::string& path,
 // is constants during the same boot of the kernel and is regenerated after
 // reboot. Returns whether it succeeded getting the boot_id.
 bool GetBootId(std::string* boot_id);
+int get_boot_type(void);
 
 // Divide |x| by |y| and round up to the nearest integer.
 constexpr uint64_t DivRoundUp(uint64_t x, uint64_t y) {
